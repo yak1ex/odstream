@@ -2,7 +2,7 @@
 /*                                                                     */
 /* odstream.cpp: Source file for stream class using OutputDebugString  */
 /*                                                                     */
-/*     Copyright (C) 2011 Yak! / Yasutaka ATARASHI                     */
+/*     Copyright (C) 2011,2017 Yak! / Yasutaka ATARASHI                */
 /*                                                                     */
 /*     This software is distributed under the terms of a zlib/libpng   */
 /*     License.                                                        */
@@ -12,16 +12,16 @@
 /***********************************************************************/
 
 #include <sstream>
-
 #include <windows.h>
 
+#define YAK_DEBUG_NO_HEADER_ONLY
 #include "odstream.hpp"
 
 namespace yak {
 
     namespace debug_yes {
 
-		class odstringbuf : public std::stringbuf
+		class debug_yes_impl::odstringbuf : public std::stringbuf
 		{
 		protected:
 			virtual int sync(void) {
@@ -30,20 +30,28 @@ namespace yak {
 				return 0;
 			}
 		};
-
-		odstringbuf odsbuf;
-		std::ostream ods(&odsbuf);
+		debug_yes_impl::odstringbuf& debug_yes_impl::odsbuf() {
+			static odstringbuf odsbuf_;
+			return odsbuf_;
+		}
+		std::ostream& debug_yes_impl::ods() {
+			static std::ostream ods_(&debug_yes_impl::odsbuf());
+			return ods_;
+		}
 
 	} // namespace debug_yes
 
 	namespace debug_no {
 
-		PseudoNullStream ods;
-
-		class nullstreambuf : public std::streambuf {};
-
-		nullstreambuf nullbuf;
-		std::ostream ns(&nullbuf);
+		class pseudo_null_stream::nullstreambuf : public std::streambuf {};
+		pseudo_null_stream::nullstreambuf& pseudo_null_stream::nullbuf() {
+			static pseudo_null_stream::nullstreambuf nullbuf_;
+			return nullbuf_;
+		}
+		std::ostream& pseudo_null_stream::null_stream() {
+			static std::ostream null_stream_(&nullbuf());
+			return null_stream_;
+		}
 
 	} // namespace debug_no
 
