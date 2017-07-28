@@ -27,9 +27,11 @@
 #include <windows.h>
 #endif // ifdef YAK_DEBUG_NO_HEADER_ONLY
 #ifdef DEBUG
-#define ODS(arg) do { yak::debug::ods() arg ; } while(0)
+#define ODS(arg) do { yak::debug::ods() arg ; yak::debug::ods().flush(); } while(0)
+#define ODS_NOFLUSH(arg) do { yak::debug::ods() arg ; } while(0)
 #else // ifdef DEBUG
 #define ODS(arg) do { /* nothing */ } while(0)
+#define ODS_NOFLUSH(arg) do { /* nothing */ } while(0)
 #endif // ifdef DEBUG
 
 namespace yak {
@@ -99,10 +101,11 @@ namespace yak {
 #endif // ifdef YAK_DEBUG_NO_HEADER_ONLY
 		public:
 			template<typename T>
-			const pseudo_null_stream& operator << (T) const { return ods(); }
-			const pseudo_null_stream& operator << (std::ostream& (*)(std::ostream&)) const { return ods(); }
-			const pseudo_null_stream& operator << (std::ios_base& (*)(std::ios_base&)) const { return ods(); }
-			const pseudo_null_stream& operator << (std::basic_ios<char>& (*)(std::basic_ios<char>&)) const { return ods(); }
+			const pseudo_null_stream& operator << (T) const { return *this; }
+			const pseudo_null_stream& operator << (std::ostream& (*)(std::ostream&)) const { return *this; }
+			const pseudo_null_stream& operator << (std::ios_base& (*)(std::ios_base&)) const { return *this; }
+			const pseudo_null_stream& operator << (std::basic_ios<char>& (*)(std::basic_ios<char>&)) const { return *this; }
+			const pseudo_null_stream& flush(void) { return *this; }
 			operator std::ostream& () { return null_stream(); }
 			static pseudo_null_stream& ods() {
 				static pseudo_null_stream ods_;
