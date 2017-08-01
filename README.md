@@ -10,17 +10,17 @@ Usage
 
 This library can use as a header-only library or an ordinary library. By default, header-only usage is chosen because of no need of preparation. To use as an ordinary library, you need to define `YAK_DEBUG_NO_HEADER_ONLY` when including `odstream.hpp`, 
 
-### preparation (for not header-only ussage) ###
+### preparation (for not header-only usage) ###
 
 #### Unix-ish ###
 
     make
 
-builds `libodstream.a`. Include `odstream.hpp` and link `libodstream.a`
+builds `libodstream.a`. Include `odstream.hpp` and link with `libodstream.a`
 
 ### Windows(MSVC) ###
 
-    nmake -f Makefile.vc
+    nmake
 
 builds `odstream.lib` and `odstream_s.lib`. `odstream.lib` is for `-MD` runtime option and `odstream_s.lib` for `-MT` runtime option. Include `odstream.hpp` and link with an appropriate library.
 
@@ -28,10 +28,10 @@ builds `odstream.lib` and `odstream_s.lib`. `odstream.lib` is for `-MD` runtime 
 
 1. Direct style
 
-        yak::debug::ods() << "Trace messages"; yak::debug::ods().flush().
+        yak::debug::ods() << "Trace messages"; yak::debug::ods().flush();
         // yak::debug::ods() << "Trace messages" << std::flush; // requires #include <iostream>
 
-    If `DEBUG` macro is defined, the message is output by `OutputDebugString()`. Otherwise, ignored.  Instead of calling `yak::debug::ods().flush()`, you can flush by using stream manipulators like `std::flush` and `std::endl`. However, such manipulators require including `iostream` header reagardless whether `DEBUG` is defined or not, and it might cause a burden of executable size.
+    If `DEBUG` macro is defined, the message is output by `OutputDebugString()` when a flush occurs. Otherwise, ignored.  Instead of calling `yak::debug::ods().flush()`, you can flush by using stream manipulators like `std::flush` and `std::endl`. However, such manipulators require including `iostream` header reagardless whether `DEBUG` is defined or not, and it might cause a burden of executable size.
 
 2. Macro style
 
