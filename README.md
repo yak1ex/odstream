@@ -6,34 +6,59 @@ C++ iostream using `OutputDebugString()` Win32 API.
 Usage
 -----
 
-### preparation ###
+### header-only or not ###
+
+This library can use as a header-only library or an ordinary library. By default, header-only usage is chosen because of no need of preparation. To use as an ordinary library, you need to define `YAK_DEBUG_NO_HEADER_ONLY` when including `odstream.hpp`, 
+
+### preparation (for not header-only ussage) ###
+
+#### Unix-ish ###
 
     make
 
 builds `libodstream.a`. Include `odstream.hpp` and link `libodstream.a`
 
+### Windows(MSVC) ###
+
+    nmake -f Makefile.vc
+
+builds `odstream.lib` and `odstream_s.lib`. `odstream.lib` is for `-MD` runtime option and `odstream_s.lib` for `-MT` runtime option. Include `odstream.hpp` and link with an appropriate library.
+
 ### code ###
 
 1. Direct style
 
-        yak::debug::ods << "Trace messages" << std::endl;
+        yak::debug::ods() << "Trace messages"; yak::debug::ods().flush().
+        // yak::debug::ods() << "Trace messages" << std::flush; // requires #include <iostream>
 
-    If `DEBUG` macro is defined, the message is output by `OutputDebugString()`. Otherwise, ignored.  However, `std::endl` requires including `iostream` header  reagardless whether `DEBUG` is defined or not and it might cause a burden of executable size.
+    If `DEBUG` macro is defined, the message is output by `OutputDebugString()`. Otherwise, ignored.  Instead of calling `yak::debug::ods().flush()`, you can flush by using stream manipulators like `std::flush` and `std::endl`. However, such manipulators require including `iostream` header reagardless whether `DEBUG` is defined or not, and it might cause a burden of executable size.
 
 2. Macro style
 
-        DEBUG_LOG(<< "Trace messages" << std::endl);
+        ODS_NOFLUSH(<< "Trace messages1"); // without flush
+        ODS(<< "Trace messages2"); // with flush
 
-    This is simliar as direct style but need not including `iostream` when `DEBUG` is not defined.
+    This is simliar as direct style but needs not including `iostream` when `DEBUG` is not defined, even if manipulators are used.
 
-To tell the truth, including `iostream` when `DEBUG` is defined is done by `odstream.hpp` header, so you need not it by yourself. To define `ODSTREAM_NO_INCLUDE_IOSTREAM` suppresses this behavior.
+    To tell the truth, including `iostream` when `DEBUG` is defined is done by `odstream.hpp` header, so you need not it by yourself. To define `ODSTREAM_NO_INCLUDE_IOSTREAM` suppresses this behavior.
+
+Notes
+-----
+
+### executable size ###
+
+To be described.
+
+### namespace alias and implementation switch ###
+
+To be described.
 
 License
 -------
 
 This software is distributed under the terms of a zlib/libpng License.
 
-> Copyright (c) 2013 Yak! / Yasutaka ATARASHI
+> Copyright (c) 2013,2017 Yak! / Yasutaka ATARASHI
 >
 > This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
 >
