@@ -47,7 +47,21 @@ Notes
 
 ### executable size ###
 
-To be described.
+Here are examples of executable size. These vary in different options and environments.
+
+#### GCC-6.3.0 with -O2 on Cygwin, stripped ####
+
+Cygwin     |header-only<br>DEBUG|header-only<br>no DEBUG|no header-only<br>DEBUG|no header-only<br>no DEBUG
+-----------|---------|---------|---------|---------
+normal     |  13,838 |   8,718 |  15,886 |   8,718 
+static link| 934,414 | 886,798 | 934,926 |   8,718 
+
+#### VC11(VS2012) ####
+
+VC11       |header-only<br>DEBUG|header-only<br>no DEBUG|no header-only<br>DEBUG|no header-only<br>no DEBUG
+-----------|---------|---------|---------|---------
+normal     |  23,040 |  12,800 |  25,088 |   6,144 
+static link| 153,088 |  74,752 | 154,112 |  52,224 
 
 ### namespace alias and implementation switch ###
 
