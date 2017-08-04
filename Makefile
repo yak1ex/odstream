@@ -35,12 +35,14 @@ clean:
 	$(RM) $(RMARGS)
 
 buildtest: $(LIBNAME)
+	$(CXX) $(CXXFLAGS) $(LINKARG)test_blank blank.cpp
 	$(CXX) $(CXXFLAGS) $(LINKARG)test_nd_who test.cpp
 	$(CXX) $(CXXFLAGS) $(LINKARG)test_nd_nho -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBARG)
 	$(CXX) $(CXXFLAGS) $(LINKARG)test_wd_who -D DEBUG test.cpp
 	$(CXX) $(CXXFLAGS) $(LINKARG)test_wd_nho -D DEBUG -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBARG)
 
 buildstatictest: $(LIBSNAME)
+	$(CXX) $(CXXFLAGS) $(LINKSARG)test_blank_s blank.cpp
 	$(CXX) $(CXXFLAGS) $(LINKSARG)test_nd_who_s test.cpp
 	$(CXX) $(CXXFLAGS) $(LINKSARG)test_nd_nho_s -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBSARG)
 	$(CXX) $(CXXFLAGS) $(LINKSARG)test_wd_who_s -D DEBUG test.cpp
