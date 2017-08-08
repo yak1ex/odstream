@@ -8,7 +8,7 @@ Usage
 
 ### header-only or not ###
 
-This library can use as a header-only library or an ordinary library. By default, header-only usage is chosen because of no need of preparation. To use as an ordinary library, you need to define `YAK_DEBUG_NO_HEADER_ONLY` when including `odstream.hpp`, 
+This library can use as a header-only library or an ordinary library. By default, header-only usage is chosen because of no need of preparation. To use as an ordinary library, you need to define `YAK_DEBUG_NO_HEADER_ONLY` when including `odstream.hpp`,
 
 ### preparation (for not header-only usage) ###
 
@@ -33,6 +33,8 @@ builds `odstream.lib` and `odstream_s.lib`. `odstream.lib` is for `-MD` runtime 
 
     If `DEBUG` macro is defined, the message is output by `OutputDebugString()` when a flush occurs. Otherwise, ignored.  Instead of calling `yak::debug::ods().flush()`, you can flush by using stream manipulators like `std::flush` and `std::endl`. However, such manipulators require including `iostream` header reagardless whether `DEBUG` is defined or not, and it might cause a burden of executable size.
 
+    If you want to output messages regardless of whether `DEBUG` marcro is defined or not, you can use `yak::debug_yes::ods()`.
+
 2. Macro style
 
         ODS_NOFLUSH(<< "Trace messages1"); // without flush
@@ -47,7 +49,7 @@ Notes
 
 ### executable size ###
 
-Here are examples of executable size. These vary in different options and environments, especially for header-only usage.
+Here are examples of executable size in bytes. These vary in different options and environments, especially for header-only usage.
 
 #### GCC-6.3.0 with -O2 on Cygwin, stripped ####
 
@@ -72,7 +74,28 @@ static link| 153,088 |  74,752 | 154,112 |  52,224 |  52,224
 
 ### namespace alias and implementation switch ###
 
-To be described.
+ [Namespaces and Library Versioning](http://www.gotw.ca/publications/mill21.htm) by Hurb Sutter describes namespace alias and library versioning as "Option 2(d): Use an alias" at the bottom of the article. This is a convenient way for library versioning or option switching.
+
+ Because actual names of entities are kept so that we can link without re-compile even though different configuration co-exists in object files and can refer needed entities directly if necessary, like `yak::debug_yes::ods()`. As desribed the article, there are limitations for namespace alias, such as specialization, re-opening namespace, and so on. These limitations are not concerns of this library. Thus, namespace alias is enough for this library.
+
+ If these limitations are actual concerns, we can use inline namespace introduced in C++11 like the followings:
+```cpp
+#ifdef DEBUG
+#define INLINE_YES inline
+#define INLINE_NO
+#else
+#define INLINE_YES
+#define INLINE_NO inline
+#endif
+namespace yak {
+  namespace debug {
+    INLINE_YES namespace yes {
+    }
+    INLINE_NO namespace no {
+    }
+  }
+}
+```
 
 License
 -------
