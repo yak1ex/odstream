@@ -11,48 +11,17 @@
 /*                                                                     */
 /***********************************************************************/
 
+#include <iostream>
 #include <sstream>
 #include <windows.h>
 
-#define YAK_DEBUG_NO_HEADER_ONLY
 #include "odstream.hpp"
 
-namespace yak {
+template struct yak::debug_yes::traits<char>;
+template struct yak::debug_yes::traits<wchar_t>;
 
-    namespace debug_yes {
+template struct yak::debug_yes::debug_yes_impl<char>;
+template struct yak::debug_yes::debug_yes_impl<wchar_t>;
 
-		class debug_yes_impl::odstringbuf : public std::stringbuf
-		{
-		protected:
-			virtual int sync(void) {
-				OutputDebugString(str().c_str());
-				str("");
-				return 0;
-			}
-		};
-		debug_yes_impl::odstringbuf& debug_yes_impl::odsbuf() {
-			static odstringbuf odsbuf_;
-			return odsbuf_;
-		}
-		std::ostream& debug_yes_impl::ods() {
-			static std::ostream ods_(&debug_yes_impl::odsbuf());
-			return ods_;
-		}
-
-	} // namespace debug_yes
-
-	namespace debug_no {
-
-		class pseudo_null_stream::nullstreambuf : public std::streambuf {};
-		pseudo_null_stream::nullstreambuf& pseudo_null_stream::nullbuf() {
-			static pseudo_null_stream::nullstreambuf nullbuf_;
-			return nullbuf_;
-		}
-		std::ostream& pseudo_null_stream::null_stream() {
-			static std::ostream null_stream_(&nullbuf());
-			return null_stream_;
-		}
-
-	} // namespace debug_no
-
-} // namespace yak
+template struct yak::debug_no::pseudo_null_stream<char>;
+template struct yak::debug_no::pseudo_null_stream<wchar_t>;
