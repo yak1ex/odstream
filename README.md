@@ -57,6 +57,40 @@ You can choose char type from `char` and `wchar_t` as follows:
     WODS(<< L"char type is 'wchar_t'")
     WODS_NOFLUSH(<< L"char type is 'wchar_t'")
 
+### lock or unlock ###
+
+This library uses CRITICAL_SECTION in Win32 API to avoid interleave of output in different expressions. An order of output by expressions is generally unspecified, but they are not interleaved. If you need not to use CRITICAL_SECTION, you can use `ods_()` instead of `ods()`.
+
+    // Thread1
+    yak::debug::ods() << "Output" << 1 << " continues" << std::endl;
+    // Thread2
+    yak::debug::ods() << "Output" << 2 << " continues" << std::endl;
+    // They should not be interleaved, so results should be either of the belows:
+    // Output1 continues
+    // Output2 continues
+    // or
+    // Output2 continues
+    // Output1 continues
+
+Note that the lock is effective inside a full expression. If you have 2 or more full expressions, you may get interleaved results.
+
+    // Thread1
+    yak::debug::ods() << "Output"; yak::debug::ods() << 1;
+    yak::debug::ods() << " continues"; yak::debug::ods() << std::endl;
+    // Thread2
+    yak::debug::ods() << "Output"; yak::debug::ods() << 1;
+    yak::debug::ods() << " continues"; yak::debug::ods() << std::endl;
+
+Limitation
+----------
+
+A returned object by `ods()` is not a `std::ostream&` object actually. Output stream operator: `operator<<` and `flush()` can be called but other member functions can't. If you need to call more member functions, you can cast to `std::ostream&` explicitly. However, considering lock lifetime, manipurator with stream operator chain might be better.
+
+    yak::debug::ods() << "OK";
+    yak::debug::ods().flush(); // OK
+    // yak::debug::ods().width(5); // Compilation failure
+    yak::debug::ods() << setw(5); // OK
+    static_cast<std::ostream&>(yak::debug::ods()).width(5); // OK
 
 Notes
 -----

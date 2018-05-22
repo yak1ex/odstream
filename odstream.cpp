@@ -17,8 +17,8 @@
 
 #include "odstream.hpp"
 
-template struct yak::debug_yes::traits<char>;
-template struct yak::debug_yes::traits<wchar_t>;
+template struct yak::debug_yes::detail::traits<char>;
+template struct yak::debug_yes::detail::traits<wchar_t>;
 
 template struct yak::debug_yes::debug_yes_impl<char>;
 template struct yak::debug_yes::debug_yes_impl<wchar_t>;
