@@ -6,6 +6,14 @@ C++ iostream using `OutputDebugString()` Win32 API. A bit part of this code uses
 Usage
 -----
 
+Typical usage: header only, macro style, with lock, and appropriate charcter type
+
+    #define DEBUG // if DEBUG is not defined, they become no-ops.
+    #include "odstream.hpp"
+    ODS(<< "TEST" << std::endl); // for char
+    WODS(<< L"TEST" << std::endl); // for wchar_t
+
+
 ### header-only or not ###
 
 This library can use as a header-only library or an ordinary library. By default, header-only usage is chosen because of no need of preparation. To use as an ordinary library, you need to define `YAK_DEBUG_NO_HEADER_ONLY` when including `odstream.hpp`,
@@ -24,14 +32,14 @@ builds `libodstream.a`. Include `odstream.hpp` and link with `libodstream.a`
 
 builds `odstream.lib` and `odstream_s.lib`. `odstream.lib` is for `-MD` runtime option and `odstream_s.lib` for `-MT` runtime option. Include `odstream.hpp` and link with an appropriate library.
 
-### code ###
+### style ###
 
 1. Direct style
 
-        yak::debug::ods() << "Trace messages"; yak::debug::ods().flush();
-        // yak::debug::ods() << "Trace messages" << std::flush; // requires #include <iostream>
+        *yak::debug::ods() << "Trace messages"; yak::debug::ods_flush();
+        // *yak::debug::ods() << "Trace messages" << std::flush; // requires #include <iostream>
 
-    If `DEBUG` macro is defined, the message is output by `OutputDebugString()` when a flush occurs. Otherwise, ignored.  Instead of calling `yak::debug::ods().flush()`, you can flush by using stream manipulators like `std::flush` and `std::endl`. However, such manipulators require including `iostream` header reagardless whether `DEBUG` is defined or not, and it might cause a burden of executable size.
+    If `DEBUG` macro is defined, the message is output by `OutputDebugString()` when a flush occurs. Otherwise, ignored.  Instead of calling `yak::debug::ods_flush()`, you can flush by using stream manipulators like `std::flush` and `std::endl`. However, such manipulators require including `iostream` header reagardless whether `DEBUG` is defined or not, and it might cause a burden of executable size.
 
     If you want to output messages regardless of whether `DEBUG` marcro is defined or not, you can use `yak::debug_yes::ods()`.
 
@@ -49,22 +57,23 @@ builds `odstream.lib` and `odstream_s.lib`. `odstream.lib` is for `-MD` runtime 
 You can choose char type from `char` and `wchar_t` as follows:
 
     // default is 'char'
-    yak::debug::ods()       << "char type is 'char'"; yak::debug::ods().flush();
-    yak::debug::ods<char>() << "char type is 'char'"; yak::debug::ods().flush();    yak::debug::ods<wchar_t>() << L"char type is 'wchar_t'"; yak::debug::ods<wchar_t>().flush()
+    *yak::debug::ods()      << "char type is 'char'"; yak::debug::ods_flush();
+    *yak::debug::ods<char>() << "char type is 'char'"; yak::debug::ods_flush();
+    *yak::debug::ods<wchar_t>() << L"char type is 'wchar_t'"; yak::debug::ods_flush<wchar_t>()
     // Macro style
     ODS(<< "char type is 'char'")
     ODS_NOFLUSH(<< "char type is 'char'")
     WODS(<< L"char type is 'wchar_t'")
     WODS_NOFLUSH(<< L"char type is 'wchar_t'")
 
-### lock or unlock ###
+### lock ###
 
-This library uses CRITICAL_SECTION in Win32 API to avoid interleave of output in different expressions. An order of output by expressions is generally unspecified, but they are not interleaved. If you need not to use CRITICAL_SECTION, you can use `ods_()` instead of `ods()`.
+This library uses CRITICAL_SECTION in Win32 API to avoid interleave of output in different expressions. An order of output by expressions is generally unspecified, but they are not interleaved. If you need not to use CRITICAL_SECTION, you can use underline-postfixed version of interfaces like `ods_()`.
 
     // Thread1
-    yak::debug::ods() << "Output" << 1 << " continues" << std::endl;
+    ODS(<< "Output" << 1 << " continues" << std::endl);
     // Thread2
-    yak::debug::ods() << "Output" << 2 << " continues" << std::endl;
+    *yak::debug::ods() << "Output" << 2 << " continues" << std::endl;
     // They should not be interleaved, so results should be either of the belows:
     // Output1 continues
     // Output2 continues
@@ -75,22 +84,22 @@ This library uses CRITICAL_SECTION in Win32 API to avoid interleave of output in
 Note that the lock is effective inside a full expression. If you have 2 or more full expressions, you may get interleaved results.
 
     // Thread1
-    yak::debug::ods() << "Output"; yak::debug::ods() << 1;
-    yak::debug::ods() << " continues"; yak::debug::ods() << std::endl;
+    *yak::debug::ods() << "Output"; *yak::debug::ods() << 1;
+    *yak::debug::ods() << " continues"; *yak::debug::ods() << std::endl;
     // Thread2
-    yak::debug::ods() << "Output"; yak::debug::ods() << 1;
-    yak::debug::ods() << " continues"; yak::debug::ods() << std::endl;
+    *yak::debug::ods() << "Output"; *yak::debug::ods() << 1;
+    *yak::debug::ods() << " continues"; *yak::debug::ods() << std::endl;
 
 Limitation
 ----------
 
-A returned object by `ods()` is not a `std::ostream&` object actually. Output stream operator: `operator<<` and `flush()` can be called but other member functions can't. If you need to call more member functions, you can cast to `std::ostream&` explicitly. However, considering lock lifetime, manipurator with stream operator chain might be better.
+A returned value by `ods()` is not always a pointer to `std::ostream`. Dereference and to use stream operator: `operator<<` can be always used but member functions can't. If you need to call member functions, you can use operator->(). However, considering lock lifetime, manipurator with stream operator chain might be better. On the other hand, more headers may be required even if `DEBUG` is not defined, as described above.
 
-    yak::debug::ods() << "OK";
-    yak::debug::ods().flush(); // OK
-    // yak::debug::ods().width(5); // Compilation failure
-    yak::debug::ods() << setw(5); // OK
-    static_cast<std::ostream&>(yak::debug::ods()).width(5); // OK
+    *yak::debug::ods() << "OK";      // Always OK
+    yak::debug::ods_flush();         // Always OK
+    //(*yak::debug::ods()).flush();  // OK only if DEBUG is defined
+    yak::debug::ods()->flush();      // Always OK but #include <iostream> is necessary
+    *yak::debug::ods() << setw(5);   // Always OK but #include <iomanip> is necessary
 
 Notes
 -----
@@ -103,15 +112,15 @@ Here are examples of executable size in bytes. These vary in different options a
 
 Cygwin     |header-only<br>DEBUG|header-only<br>no DEBUG|no header-only<br>DEBUG|no header-only<br>no DEBUG|blank main
 -----------|---------|---------|---------|---------|---------
-normal     |  13,838 |   8,718 |  26,126 |  25,102 |   8,718
-static link| 934,414 | 887,310 | 942,606 | 942,606 |   8,718
+normal     |  22,030 |   8,718 |  28,174 |  25,102 |   8,718
+static link| 939,022 | 887,310 | 944,142 | 942,606 |   8,718
 
 #### VC14(VS2015) ####
 
 VC14       |header-only<br>DEBUG|header-only<br>no DEBUG|no header-only<br>DEBUG|no header-only<br>no DEBUG|blank main
 -----------|---------|---------|---------|---------|---------
-normal     |  27,648 |   8,704 |  27,648 |   9,728 |   8,192
-static link| 183,296 |  86,528 | 183,296 | 117,760 |  86,016
+normal     |  43,520 |   8,704 |  43,520 |   9,728 |   8,192
+static link| 203,264 |  86,528 | 203,264 | 117,760 |  86,016
 
 ### namespace alias and implementation switch ###
 

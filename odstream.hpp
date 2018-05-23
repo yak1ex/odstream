@@ -16,6 +16,7 @@
 
 #include <windows.h>
 #include <utility>
+#include <memory>
 
 #ifdef YAK_DEBUG_NO_HEADER_ONLY
 #include <iosfwd>
@@ -30,57 +31,24 @@
 #include <sstream>
 #endif // ifdef YAK_DEBUG_NO_HEADER_ONLY
 #ifdef DEBUG
-#define CALLDEBUG (void)
+#define CALLDEBUG(arg) (void)(arg)
 #else /* def DEBUG */
-#define CALLDEBUG (void)sizeof
+#define CALLDEBUG(arg) (void)0
 #endif /* def DEBUG */
-#define ODS(arg) (CALLDEBUG((yak::debug::ods<char>() arg).flush()))
-#define ODS_NOFLUSH(arg) (CALLDEBUG(yak::debug::ods<char>() arg))
-#define WODS(arg) (CALLDEBUG((yak::debug::ods<wchar_t>() arg).flush()))
-#define WODS_NOFLUSH(arg) (CALLDEBUG(yak::debug::ods<wchar_t>() arg))
+#define ODS_IMPL(type, ods, arg)         (CALLDEBUG((*yak::debug::ods<type>() arg).flush()))
+#define ODS_NOFLUSH_IMPL(type, ods, arg) (CALLDEBUG(*yak::debug::ods<type>() arg))
+#define ODS(arg)                         ODS_IMPL(char, ods, arg)
+#define ODS_(arg)                        ODS_IMPL(char, ods_, arg)
+#define ODS_NOFLUSH(arg)                 ODS_NOFLUSH_IMPL(char, ods, arg)
+#define ODS_NOFLUSH_(arg)                ODS_NOFLUSH_IMPL(char, ods_, arg)
+#define WODS(arg)                        ODS_IMPL(wchar_t, ods, arg)
+#define WODS_(arg)                       ODS_IMPL(wchar_t, ods_, arg)
+#define WODS_NOFLUSH(arg)                ODS_NOFLUSH_IMPL(wchar_t, ods, arg)
+#define WODS_NOFLUSH_(arg)               ODS_NOFLUSH_IMPL(wchar_t, ods_, arg)
 
 namespace yak {
 
 	namespace debug_yes {
-
-		namespace detail {
-			struct critical_section : CRITICAL_SECTION
-			{
-				critical_section() {
-					InitializeCriticalSection(this);
-				}
-				~critical_section() {
-					DeleteCriticalSection(this);
-				}
-			};
-			template<typename T>
-			struct holder
-			{
-			private:
-				static LPCRITICAL_SECTION getPtr() {
-					static critical_section cs;
-					return &cs;
-				}
-				T& t;
-				bool hold;
-			public:
-				holder(T& t) : t(t), hold(true) {
-					EnterCriticalSection(getPtr());
-				}
-				explicit operator T&() { return t; }
-				holder(const holder&) = delete;
-				holder& operator=(const holder&) = delete;
-				holder(holder&& h) : t(h.t), hold(false) {
-					std::swap(hold, h.hold);
-				}
-				holder&& operator=(holder&& h) = delete;
-				~holder() {
-					if(hold) LeaveCriticalSection(getPtr());
-				}
-				template<typename U> friend T& operator<<(const holder<T>& h, const U& u) { return h.t << u; }
-				T& flush() { return t.flush(); }
-			};
-		} // namespace detail
 
 #ifdef YAK_DEBUG_NO_HEADER_ONLY
 		// Use the Construct On First Use Idiom, to avoid static initialization order fiasco
@@ -162,16 +130,55 @@ namespace yak {
 		}; // struct debug_yes_impl
 #endif
 
+		namespace detail {
+			struct critical_section : CRITICAL_SECTION
+			{
+				critical_section() { InitializeCriticalSection(this); }
+				~critical_section() { DeleteCriticalSection(this); }
+				template<typename T>
+				static LPCRITICAL_SECTION getPtr()
+				{
+					static critical_section cs;
+					return &cs;
+				}
+			};
+			struct cs_deleter
+			{
+			private:
+				LPCRITICAL_SECTION pcs;
+			public:
+				cs_deleter(LPCRITICAL_SECTION pcs) : pcs(pcs) {}
+				template<typename T>
+				void operator()(T*) { LeaveCriticalSection(pcs); }
+			};
+		} // namespace detail
+
 		// without lock
 		template<typename CharT = char>
-		inline std::basic_ostream<CharT>& ods_() {
-			return debug_yes_impl<CharT>::ods();
+		inline std::basic_ostream<CharT>* ods_() {
+			return &debug_yes_impl<CharT>::ods();
+		}
+
+		template<typename CharT = char>
+		inline std::basic_ostream<CharT>* ods_flush_() {
+			return &debug_yes_impl<CharT>::ods().flush();
 		}
 
 		// with lock
 		template<typename CharT = char>
-		inline detail::holder<std::basic_ostream<CharT>> ods() {
-			return detail::holder<std::basic_ostream<CharT>>(ods_<CharT>());
+		inline std::unique_ptr<std::basic_ostream<CharT>, detail::cs_deleter> ods() {
+			LPCRITICAL_SECTION pcs = detail::critical_section::getPtr<CharT>();
+			EnterCriticalSection(pcs);
+			return std::unique_ptr<std::basic_ostream<CharT>, detail::cs_deleter>(ods_<CharT>(), detail::cs_deleter(pcs));
+		}
+
+		template<typename CharT = char>
+		inline std::unique_ptr<std::basic_ostream<CharT>, detail::cs_deleter> ods_flush() {
+			LPCRITICAL_SECTION pcs = detail::critical_section::getPtr<CharT>();
+			EnterCriticalSection(pcs);
+			auto p = std::unique_ptr<std::basic_ostream<CharT>, detail::cs_deleter>(ods_<CharT>(), detail::cs_deleter(pcs));
+			p->flush();
+			return std::move(p);
 		}
 
 	} // namespace debug_yes
@@ -227,14 +234,37 @@ namespace yak {
 		};
 #endif
 
+		namespace detail {
+			template<typename CharT>
+			struct holder
+			{
+			private:
+				pseudo_null_stream<CharT>& r;
+			public:
+				holder(pseudo_null_stream<CharT>& r) : r(r) {}
+				std::basic_ostream<CharT>* operator->() const { return &static_cast<std::basic_ostream<CharT>&>(r); }
+				pseudo_null_stream<CharT>& operator*() { return r; }
+			};
+		} // namespace detail
+
 		template<typename CharT = char>
-		inline pseudo_null_stream<CharT>& ods_() {
-			return pseudo_null_stream<CharT>::ods();
+		inline detail::holder<CharT> ods_() {
+			return detail::holder<CharT>(pseudo_null_stream<CharT>::ods());
 		}
 
 		template<typename CharT = char>
-		inline pseudo_null_stream<CharT>& ods() {
-			return pseudo_null_stream<CharT>::ods();
+		inline detail::holder<CharT> ods_flush_() {
+			return detail::holder<CharT>(pseudo_null_stream<CharT>::ods());
+		}
+
+		template<typename CharT = char>
+		inline detail::holder<CharT> ods() {
+			return detail::holder<CharT>(pseudo_null_stream<CharT>::ods());
+		}
+
+		template<typename CharT = char>
+		inline detail::holder<CharT> ods_flush() {
+			return detail::holder<CharT>(pseudo_null_stream<CharT>::ods());
 		}
 
 	} // namespace debug_no
