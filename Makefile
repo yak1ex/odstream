@@ -3,7 +3,8 @@
 #\
 !if 1 #\
 # [[[nmake]]] \
-CXXFLAGS=/EHsc
+CFLAGS=/TC #\
+CXXFLAGS=/EHsc #\
 LIBNAME=odstream.lib #\
 LIBSNAME=odstream_s.lib #\
 LIBARG=$(LIBNAME) #\
@@ -34,19 +35,25 @@ all: $(LIBNAME) $(LIBSNAME)
 clean:
 	$(RM) $(RMARGS)
 
+buildptest:
+	$(CXX) $(CXXFLAGS) -D DEBUG $(LINKARG)testp_wd_cpp test_odprintf.c
+	$(CXX) $(CXXFLAGS)          $(LINKARG)testp_nd_cpp test_odprintf.c
+	$(CC)  $(CFLAGS)   -D DEBUG $(LINKARG)testp_wd_c   test_odprintf.c
+	$(CC)  $(CFLAGS)            $(LINKARG)testp_nd_c   test_odprintf.c
+
 buildtest: $(LIBNAME)
 	$(CXX) $(CXXFLAGS) $(LINKARG)test_blank blank.cpp
-	$(CXX) $(CXXFLAGS) $(LINKARG)test_nd_who test.cpp
-	$(CXX) $(CXXFLAGS) $(LINKARG)test_nd_nho -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBARG)
-	$(CXX) $(CXXFLAGS) $(LINKARG)test_wd_who -D DEBUG test.cpp
-	$(CXX) $(CXXFLAGS) $(LINKARG)test_wd_nho -D DEBUG -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBARG)
+	$(CXX) $(CXXFLAGS) $(LINKARG)test_nd_who test_odstream.cpp
+	$(CXX) $(CXXFLAGS) $(LINKARG)test_nd_nho -D YAK_DEBUG_NO_HEADER_ONLY test_odstream.cpp $(LIBARG)
+	$(CXX) $(CXXFLAGS) $(LINKARG)test_wd_who -D DEBUG test_odstream.cpp
+	$(CXX) $(CXXFLAGS) $(LINKARG)test_wd_nho -D DEBUG -D YAK_DEBUG_NO_HEADER_ONLY test_odstream.cpp $(LIBARG)
 
 buildstatictest: $(LIBSNAME)
 	$(CXX) $(CXXFLAGS) $(LINKSARG)test_blank_s blank.cpp
-	$(CXX) $(CXXFLAGS) $(LINKSARG)test_nd_who_s test.cpp
-	$(CXX) $(CXXFLAGS) $(LINKSARG)test_nd_nho_s -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBSARG)
-	$(CXX) $(CXXFLAGS) $(LINKSARG)test_wd_who_s -D DEBUG test.cpp
-	$(CXX) $(CXXFLAGS) $(LINKSARG)test_wd_nho_s -D DEBUG -D YAK_DEBUG_NO_HEADER_ONLY test.cpp $(LIBSARG)
+	$(CXX) $(CXXFLAGS) $(LINKSARG)test_nd_who_s test_odstream.cpp
+	$(CXX) $(CXXFLAGS) $(LINKSARG)test_nd_nho_s -D YAK_DEBUG_NO_HEADER_ONLY test_odstream.cpp $(LIBSARG)
+	$(CXX) $(CXXFLAGS) $(LINKSARG)test_wd_who_s -D DEBUG test_odstream.cpp
+	$(CXX) $(CXXFLAGS) $(LINKSARG)test_wd_nho_s -D DEBUG -D YAK_DEBUG_NO_HEADER_ONLY test_odstream.cpp $(LIBSARG)
 
 ########################################################################
 #
